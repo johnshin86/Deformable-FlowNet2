@@ -15,6 +15,11 @@ from os.path import *
 
 import models, losses, datasets
 from utils import flow_utils, tools
+#from networks import *
+#from networks.channelnorm_package import *
+#from networks.correlation_package import *
+#from networks.resample2d_package import *
+
 
 # fp32 copy of parameters for update
 global param_copy
@@ -64,19 +69,19 @@ if __name__ == '__main__':
     tools.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
 
     tools.add_arguments_for_module(parser, torch.optim, argument_for_class='optimizer', default='Adam', skip_params=['params'])
-    
-    tools.add_arguments_for_module(parser, datasets, argument_for_class='training_dataset', default='MpiSintelFinal', 
+
+    tools.add_arguments_for_module(parser, datasets, argument_for_class='training_dataset', default='MpiSintelFinal',
                                     skip_params=['is_cropped'],
-                                    parameter_defaults={'root': './MPI-Sintel/flow/training'})
-    
-    tools.add_arguments_for_module(parser, datasets, argument_for_class='validation_dataset', default='MpiSintelClean', 
+                                    parameter_defaults={'root': '../MPI-Sintel-complete/training/'})
+
+    tools.add_arguments_for_module(parser, datasets, argument_for_class='validation_dataset', default='MpiSintelClean',
                                     skip_params=['is_cropped'],
-                                    parameter_defaults={'root': './MPI-Sintel/flow/training',
+                                    parameter_defaults={'root': '../MPI-Sintel-complete/training/',
                                                         'replicates': 1})
-    
-    tools.add_arguments_for_module(parser, datasets, argument_for_class='inference_dataset', default='MpiSintelClean', 
+
+    tools.add_arguments_for_module(parser, datasets, argument_for_class='inference_dataset', default='MpiSintelClean',
                                     skip_params=['is_cropped'],
-                                    parameter_defaults={'root': './MPI-Sintel/flow/training',
+                                    parameter_defaults={'root': '../MPI-Sintel-complete/training/',
                                                         'replicates': 1})
 
     main_dir = os.path.dirname(os.path.realpath(__file__))
@@ -129,8 +134,8 @@ if __name__ == '__main__':
         args.effective_batch_size = args.batch_size * args.number_gpus
         args.effective_inference_batch_size = args.inference_batch_size * args.number_gpus
         args.effective_number_workers = args.number_workers * args.number_gpus
-        gpuargs = {'num_workers': args.effective_number_workers, 
-                   'pin_memory': True, 
+        gpuargs = {'num_workers': args.effective_number_workers,
+                   'pin_memory': True,
                    'drop_last' : True} if args.cuda else {}
         inf_gpuargs = gpuargs.copy()
         inf_gpuargs['num_workers'] = args.number_workers
@@ -141,14 +146,14 @@ if __name__ == '__main__':
             block.log('Training Input: {}'.format(' '.join([str([d for d in x.size()]) for x in train_dataset[0][0]])))
             block.log('Training Targets: {}'.format(' '.join([str([d for d in x.size()]) for x in train_dataset[0][1]])))
             train_loader = DataLoader(train_dataset, batch_size=args.effective_batch_size, shuffle=True, **gpuargs)
-
+        #print("validation dataset root",args.validation_dataset_root)
         if exists(args.validation_dataset_root):
             validation_dataset = args.validation_dataset_class(args, True, **tools.kwargs_from_args(args, 'validation_dataset'))
             block.log('Validation Dataset: {}'.format(args.validation_dataset))
             block.log('Validation Input: {}'.format(' '.join([str([d for d in x.size()]) for x in validation_dataset[0][0]])))
             block.log('Validation Targets: {}'.format(' '.join([str([d for d in x.size()]) for x in validation_dataset[0][1]])))
             validation_loader = DataLoader(validation_dataset, batch_size=args.effective_batch_size, shuffle=False, **gpuargs)
-
+        print("inference dataset root",args.inference_dataset_root)
         if exists(args.inference_dataset_root):
             inference_dataset = args.inference_dataset_class(args, False, **tools.kwargs_from_args(args, 'inference_dataset'))
             block.log('Inference Dataset: {}'.format(args.inference_dataset))
@@ -165,7 +170,7 @@ if __name__ == '__main__':
                 self.model = args.model_class(args, **kwargs)
                 kwargs = tools.kwargs_from_args(args, 'loss')
                 self.loss = args.loss_class(args, **kwargs)
-                
+
             def forward(self, data, target, inference=False ):
                 output = self.model(data)
 
@@ -181,14 +186,14 @@ if __name__ == '__main__':
         block.log('Effective Batch Size: {}'.format(args.effective_batch_size))
         block.log('Number of parameters: {}'.format(sum([p.data.nelement() if p.requires_grad else 0 for p in model_and_loss.parameters()])))
 
-        # assing to cuda or wrap with dataparallel, model and loss 
+        # assing to cuda or wrap with dataparallel, model and loss
         if args.cuda and (args.number_gpus > 0) and args.fp16:
             block.log('Parallelizing')
             model_and_loss = nn.parallel.DataParallel(model_and_loss, device_ids=list(range(args.number_gpus)))
 
             block.log('Initializing CUDA')
             model_and_loss = model_and_loss.cuda().half()
-            torch.cuda.manual_seed(args.seed) 
+            torch.cuda.manual_seed(args.seed)
             param_copy = [param.clone().type(torch.cuda.FloatTensor).detach() for param in model_and_loss.parameters()]
 
         elif args.cuda and args.number_gpus > 0:
@@ -196,7 +201,7 @@ if __name__ == '__main__':
             model_and_loss = model_and_loss.cuda()
             block.log('Parallelizing')
             model_and_loss = nn.parallel.DataParallel(model_and_loss, device_ids=list(range(args.number_gpus)))
-            torch.cuda.manual_seed(args.seed) 
+            torch.cuda.manual_seed(args.seed)
 
         else:
             block.log('CUDA not being used')
@@ -226,7 +231,7 @@ if __name__ == '__main__':
         train_logger = SummaryWriter(log_dir = os.path.join(args.save, 'train'), comment = 'training')
         validation_logger = SummaryWriter(log_dir = os.path.join(args.save, 'validation'), comment = 'validation')
 
-    # Dynamically load the optimizer with parameters passed in via "--optimizer_[param]=[value]" arguments 
+    # Dynamically load the optimizer with parameters passed in via "--optimizer_[param]=[value]" arguments
     with tools.TimerBlock("Initializing {} Optimizer".format(args.optimizer)) as block:
         kwargs = tools.kwargs_from_args(args, 'optimizer')
         if args.fp16:
@@ -265,15 +270,15 @@ if __name__ == '__main__':
 
             optimizer.zero_grad() if not is_validate else None
             losses = model(data[0], target[0])
-            losses = [torch.mean(loss_value) for loss_value in losses] 
+            losses = [torch.mean(loss_value) for loss_value in losses]
             loss_val = losses[0] # Collect first loss for weight update
-            total_loss += loss_val.data[0]
-            loss_values = [v.data[0] for v in losses]
+            total_loss += loss_val.data
+            loss_values = [v.data for v in losses]
 
             # gather loss_labels, direct return leads to recursion limit error as it looks for variables to gather'
             loss_labels = list(model.module.loss.loss_labels)
 
-            assert not np.isnan(total_loss)
+            assert not np.isnan(total_loss.cpu())
 
             if not is_validate and args.fp16:
                 loss_val.backward()
@@ -320,9 +325,9 @@ if __name__ == '__main__':
 
                 all_losses = np.array(statistics)
 
-                for i, key in enumerate(loss_labels):
-                    logger.add_scalar('average batch ' + str(key), all_losses[:, i].mean(), global_iteration)
-                    logger.add_histogram(str(key), all_losses[:, i], global_iteration)
+                #for i, key in enumerate(loss_labels):
+                #    logger.add_scalar('average batch ' + str(key), np.mean(all_losses[:, i]), global_iteration)
+                #    logger.add_histogram(str(key), all_losses[:, i], global_iteration)
 
             # Reset Summary
             statistics = []
@@ -341,16 +346,16 @@ if __name__ == '__main__':
     def inference(args, epoch, data_loader, model, offset=0):
 
         model.eval()
-        
+
         if args.save_flow or args.render_validation:
             flow_folder = "{}/inference/{}.epoch-{}-flow-field".format(args.save,args.name.replace('/', '.'),epoch)
             if not os.path.exists(flow_folder):
                 os.makedirs(flow_folder)
 
-        
+
         args.inference_n_batches = np.inf if args.inference_n_batches < 0 else args.inference_n_batches
 
-        progress = tqdm(data_loader, ncols=100, total=np.minimum(len(data_loader), args.inference_n_batches), desc='Inferencing ', 
+        progress = tqdm(data_loader, ncols=100, total=np.minimum(len(data_loader), args.inference_n_batches), desc='Inferencing ',
             leave=True, position=offset)
 
         statistics = []
@@ -360,16 +365,16 @@ if __name__ == '__main__':
                 data, target = [d.cuda(async=True) for d in data], [t.cuda(async=True) for t in target]
             data, target = [Variable(d) for d in data], [Variable(t) for t in target]
 
-            # when ground-truth flows are not available for inference_dataset, 
-            # the targets are set to all zeros. thus, losses are actually L1 or L2 norms of compute optical flows, 
+            # when ground-truth flows are not available for inference_dataset,
+            # the targets are set to all zeros. thus, losses are actually L1 or L2 norms of compute optical flows,
             # depending on the type of loss norm passed in
             with torch.no_grad():
                 losses, output = model(data[0], target[0], inference=True)
 
-            losses = [torch.mean(loss_value) for loss_value in losses] 
+            losses = [torch.mean(loss_value) for loss_value in losses]
             loss_val = losses[0] # Collect first loss for weight update
-            total_loss += loss_val.data[0]
-            loss_values = [v.data[0] for v in losses]
+            total_loss += loss_val.data
+            loss_values = [v.data for v in losses]
 
             # gather loss_labels, direct return leads to recursion limit error as it looks for variables to gather'
             loss_labels = list(model.module.loss.loss_labels)
@@ -416,7 +421,7 @@ if __name__ == '__main__':
             tools.save_checkpoint({   'arch' : args.model,
                                       'epoch': epoch,
                                       'state_dict': model_and_loss.module.model.state_dict(),
-                                      'best_EPE': best_err}, 
+                                      'best_EPE': best_err},
                                       is_best, args.save, args.model)
             checkpoint_progress.update(1)
             checkpoint_progress.close()
@@ -433,7 +438,7 @@ if __name__ == '__main__':
                 tools.save_checkpoint({   'arch' : args.model,
                                           'epoch': epoch,
                                           'state_dict': model_and_loss.module.model.state_dict(),
-                                          'best_EPE': train_loss}, 
+                                          'best_EPE': train_loss},
                                           False, args.save, args.model, filename = 'train-checkpoint.pth.tar')
                 checkpoint_progress.update(1)
                 checkpoint_progress.close()
