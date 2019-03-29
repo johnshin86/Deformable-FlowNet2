@@ -268,8 +268,8 @@ if __name__ == '__main__':
             losses = model(data[0], target[0])
             losses = [torch.mean(loss_value) for loss_value in losses]
             loss_val = losses[0] # Collect first loss for weight update
-            total_loss += loss_val.data
-            loss_values = [v.data for v in losses]
+            total_loss += loss_val.data.cpu()
+            loss_values = [v.data.cpu() for v in losses]
 
             # gather loss_labels, direct return leads to recursion limit error as it looks for variables to gather'
             loss_labels = list(model.module.loss.loss_labels)
@@ -321,9 +321,9 @@ if __name__ == '__main__':
 
                 all_losses = np.array(statistics)
 
-                #for i, key in enumerate(loss_labels):
-                #    logger.add_scalar('average batch ' + str(key), np.mean(all_losses[:, i]), global_iteration)
-                #    logger.add_histogram(str(key), all_losses[:, i], global_iteration)
+                for i, key in enumerate(loss_labels):
+                    logger.add_scalar('average batch ' + str(key), all_losses[:, i].mean() , global_iteration)
+                    logger.add_histogram(str(key), all_losses[:, i], global_iteration)
 
             # Reset Summary
             statistics = []
@@ -369,8 +369,8 @@ if __name__ == '__main__':
 
             losses = [torch.mean(loss_value) for loss_value in losses]
             loss_val = losses[0] # Collect first loss for weight update
-            total_loss += loss_val.data
-            loss_values = [v.data for v in losses]
+            total_loss += loss_val.data.cpu()
+            loss_values = [v.data.cpu() for v in losses]
 
             # gather loss_labels, direct return leads to recursion limit error as it looks for variables to gather'
             loss_labels = list(model.module.loss.loss_labels)
