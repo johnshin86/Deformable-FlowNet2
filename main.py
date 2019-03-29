@@ -15,10 +15,6 @@ from os.path import *
 
 import models, losses, datasets
 from utils import flow_utils, tools
-#from networks import *
-#from networks.channelnorm_package import *
-#from networks.correlation_package import *
-#from networks.resample2d_package import *
 
 
 # fp32 copy of parameters for update
