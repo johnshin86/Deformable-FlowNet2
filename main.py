@@ -427,7 +427,7 @@ if __name__ == '__main__':
             print("\n")
             print("This is validation loss", validation_loss)
             print("\n")
-            validation_logger.add_scalar('Validation Loss', validation_loss , epoch)
+            validation_logger.add_scalar('Validation Loss by Epoch', validation_loss , epoch)
             offset += 1
 
             is_best = False
@@ -452,7 +452,7 @@ if __name__ == '__main__':
             print("\n")
             print("This is training loss", train_loss)
             print("\n")
-            train_logger.add_scalar('', train_loss, epoch)
+            train_logger.add_scalar('Training Loss by Epoch', train_loss, epoch)
 
             # save checkpoint after every validation_frequency number of epochs
             if ((epoch - 1) % args.validation_frequency) == 0:
