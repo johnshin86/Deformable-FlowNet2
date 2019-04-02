@@ -65,6 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('--decay', type=float, default=0)
     parser.add_argument('--nesterov', action='store_true')
     parser.add_argument('--notes', type=str, default='')
+    parser.add_argument('--blocktest', action='store_true')
 
     parser.add_argument('--fp16', action='store_true', help='Run model in pseudo-fp16 mode (fp16 storage fp32 math).')
     parser.add_argument('--fp16_scale', type=float, default=1024., help='Loss scaling, positive power of 2 values can improve fp16 convergence.')
@@ -289,7 +290,8 @@ if __name__ == '__main__':
             loss_values = [v.data.cpu() for v in losses] #collect loss values
 
             # gather loss_labels, direct return leads to recursion limit error as it looks for variables to gather'
-            loss_labels = [y for x in model.module.loss.loss_labels for y in x] #list(model.module.loss.loss_labels)
+            #loss_labels = [y for x in model.module.loss.loss_labels for y in x] #list(model.module.loss.loss_labels)
+            loss_labels = list(model.module.loss.loss_labels)
 
             assert not np.isnan(total_loss.cpu())
 

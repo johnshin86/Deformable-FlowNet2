@@ -179,6 +179,7 @@ class FlowNet2C(FlowNetC.FlowNetC):
     def __init__(self, args, batchNorm=False, div_flow=20):
         super(FlowNet2C,self).__init__(args, batchNorm=batchNorm, div_flow=20)
         self.rgb_max = args.rgb_max
+        self.args = args
 
     def forward(self, inputs):
         rgb_mean = inputs.contiguous().view(inputs.size()[:2]+(-1,)).mean(dim=-1).view(inputs.size()[:2] + (1,1,1,))
@@ -238,7 +239,7 @@ class FlowNet2C(FlowNetC.FlowNetC):
 
         flow2 = self.predict_flow2(concat2)
 
-        if self.training:
+        if self.training and not self.args.blocktest:
             return flow2,flow3,flow4,flow5,flow6
             #return self.upsample1(flow2*self.div_flow)
         else:
@@ -249,6 +250,7 @@ class FlowNet2S(FlowNetS.FlowNetS):
         super(FlowNet2S,self).__init__(args, input_channels = 6, batchNorm=batchNorm)
         self.rgb_max = args.rgb_max
         self.div_flow = div_flow
+        self.args = args
 
     def forward(self, inputs):
         rgb_mean = inputs.contiguous().view(inputs.size()[:2]+(-1,)).mean(dim=-1).view(inputs.size()[:2] + (1,1,1,))
@@ -285,7 +287,7 @@ class FlowNet2S(FlowNetS.FlowNetS):
         concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
         flow2 = self.predict_flow2(concat2)
 
-        if self.training:
+        if self.training and not self.args.blocktest:
             return flow2,flow3,flow4,flow5,flow6
         else:
             return self.upsample1(flow2*self.div_flow)
@@ -296,6 +298,7 @@ class FlowNet2SD(FlowNetSD.FlowNetSD):
         super(FlowNet2SD,self).__init__(args, batchNorm=batchNorm)
         self.rgb_max = args.rgb_max
         self.div_flow = div_flow
+        self.args = args
 
     def forward(self, inputs):
         rgb_mean = inputs.contiguous().view(inputs.size()[:2]+(-1,)).mean(dim=-1).view(inputs.size()[:2] + (1,1,1,))
@@ -338,7 +341,7 @@ class FlowNet2SD(FlowNetSD.FlowNetSD):
         out_interconv2 = self.inter_conv2(concat2)
         flow2 = self.predict_flow2(out_interconv2)
 
-        if self.training:
+        if self.training and not self.args.blocktest:
             return flow2,flow3,flow4,flow5,flow6
         else:
             return self.upsample1(flow2*self.div_flow)
@@ -498,64 +501,65 @@ class FlowNet2CSS(nn.Module):
         return flownets2_flow
 
 class DFlowNet2S(DFlowNetS.DFlowNetS):
-     def __init__(self, args, batchNorm=False, div_flow=20):
-         super(DFlowNet2S,self).__init__(args, input_channels = 6, batchNorm=batchNorm)
-         self.rgb_max = args.rgb_max
-         self.div_flow = div_flow
+    def __init__(self, args, batchNorm=False, div_flow=20):
+        super(DFlowNet2S,self).__init__(args, input_channels = 6, batchNorm=batchNorm)
+        self.rgb_max = args.rgb_max
+        self.div_flow = div_flow
+        self.args = args
 
-     def forward(self, inputs):
-         rgb_mean = inputs.contiguous().view(inputs.size()[:2]+(-1,)).mean(dim=-1).view(inputs.size()[:2] + (1,1,1,))
-         x = (inputs - rgb_mean) / self.rgb_max
-         x = torch.cat( (x[:,:,0,:,:], x[:,:,1,:,:]), dim = 1)
+    def forward(self, inputs):
+        rgb_mean = inputs.contiguous().view(inputs.size()[:2]+(-1,)).mean(dim=-1).view(inputs.size()[:2] + (1,1,1,))
+        x = (inputs - rgb_mean) / self.rgb_max
+        x = torch.cat( (x[:,:,0,:,:], x[:,:,1,:,:]), dim = 1)
 
-         out_conv1 = self.conv1(x)
+        out_conv1 = self.conv1(x)
 
-         out_conv2 = self.conv2(out_conv1)
-         out_conv3 = self.conv3_1(self.conv3(out_conv2))
-         out_conv4 = self.conv4_1(self.conv4(out_conv3))
-         out_conv5 = self.conv5_1(self.conv5(out_conv4))
-         out_conv6 = self.conv6_1(self.conv6(out_conv5))
+        out_conv2 = self.conv2(out_conv1)
+        out_conv3 = self.conv3_1(self.conv3(out_conv2))
+        out_conv4 = self.conv4_1(self.conv4(out_conv3))
+        out_conv5 = self.conv5_1(self.conv5(out_conv4))
+        out_conv6 = self.conv6_1(self.conv6(out_conv5))
 
-         flow6       = self.predict_flow6(out_conv6)
-         flow6_up    = self.upsampled_flow6_to_5(flow6)
-         out_deconv5 = self.deconv5(out_conv6)
+        flow6       = self.predict_flow6(out_conv6)
+        flow6_up    = self.upsampled_flow6_to_5(flow6)
+        out_deconv5 = self.deconv5(out_conv6)
 
-         #print("size of outconv5", out_conv5.size())
-         #print("size of outdeconv5", out_deconv5.size())
-         #print("size of flow6_up", flow6_up.size())
+        #print("size of outconv5", out_conv5.size())
+        #print("size of outdeconv5", out_deconv5.size())
+        #print("size of flow6_up", flow6_up.size())
 
-         concat5 = torch.cat((out_conv5,out_deconv5,flow6_up),1)
-         flow5       = self.predict_flow5(concat5)
-         flow5_up    = self.upsampled_flow5_to_4(flow5)
-         out_deconv4 = self.deconv4(concat5)
+        concat5 = torch.cat((out_conv5,out_deconv5,flow6_up),1)
+        flow5       = self.predict_flow5(concat5)
+        flow5_up    = self.upsampled_flow5_to_4(flow5)
+        out_deconv4 = self.deconv4(concat5)
 
-         #print("size of outconv4", out_conv4.size())
-         #print("size of outdeconv4", out_deconv4.size())
-         #print("size of flow5_up", flow5_up.size())
-
-
-         concat4 = torch.cat((out_conv4,out_deconv4,flow5_up),1)
-         flow4       = self.predict_flow4(concat4)
-         flow4_up    = self.upsampled_flow4_to_3(flow4)
-         out_deconv3 = self.deconv3(concat4)
-
-         #print("size of outconv3", out_conv3.size())
-         #print("size of outdeconv3", out_deconv3.size())
-         #print("size of flow4_up", flow4_up.size())
+        #print("size of outconv4", out_conv4.size())
+        #print("size of outdeconv4", out_deconv4.size())
+        #print("size of flow5_up", flow5_up.size())
 
 
-         concat3 = torch.cat((out_conv3,out_deconv3,flow4_up),1)
-         flow3       = self.predict_flow3(concat3)
-         flow3_up    = self.upsampled_flow3_to_2(flow3)
-         out_deconv2 = self.deconv2(concat3)
+        concat4 = torch.cat((out_conv4,out_deconv4,flow5_up),1)
+        flow4       = self.predict_flow4(concat4)
+        flow4_up    = self.upsampled_flow4_to_3(flow4)
+        out_deconv3 = self.deconv3(concat4)
 
-         #print("size of outconv3", out_conv2.size())
-         #print("size of outdeconv3", out_deconv2.size())
-         #print("size of flow4_up", flow3_up.size())
+        #print("size of outconv3", out_conv3.size())
+        #print("size of outdeconv3", out_deconv3.size())
+        #print("size of flow4_up", flow4_up.size())
 
 
-         concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
-         flow2 = self.predict_flow2(concat2)
+        concat3 = torch.cat((out_conv3,out_deconv3,flow4_up),1)
+        flow3       = self.predict_flow3(concat3)
+        flow3_up    = self.upsampled_flow3_to_2(flow3)
+        out_deconv2 = self.deconv2(concat3)
 
-         return self.upsample1(flow2*self.div_flow)
+        #print("size of outconv3", out_conv2.size())
+        #print("size of outdeconv3", out_deconv2.size())
+        #print("size of flow4_up", flow3_up.size())
+
+
+        concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
+        flow2 = self.predict_flow2(concat2)
+
+        return self.upsample1(flow2*self.div_flow)
 
