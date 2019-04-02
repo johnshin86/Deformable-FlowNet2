@@ -10,4 +10,5 @@ networks/correlation_package/build/*
 networks/resample2d_package/build/*
 networks/DCNv2/build/*
 networks/DCNv2/DCNv2.egg-info
-
+networks/DCNv2/__pycache__
+*.so
