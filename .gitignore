@@ -5,3 +5,6 @@ _ext
 work
 work/*
 _ext/
+networks/channelnorm_package/build/*
+networks/correlation_package/build/*
+networks/resample2d_package/build/*
