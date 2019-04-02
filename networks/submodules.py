@@ -1,11 +1,26 @@
-# freda (todo) : 
+# freda (todo) :
 
 import torch.nn as nn
 import torch
-import numpy as np 
+import numpy as np
+from .deform_conv_v2 import DeformConv2d
 
-def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
-    if batchNorm:
+def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, deform=False):
+    if( batchNorm and deform) :
+        #print("here")
+        return nn.Sequential(
+             DeformConv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2,      bias=False, modulation=True),
+             nn.BatchNorm2d(out_planes),
+             nn.LeakyReLU(0.1,inplace=True)
+         )
+    elif deform==True and batchNorm==False:
+        #print("here")
+        return nn.Sequential(
+             DeformConv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2,      bias=True, modulation=True),
+             nn.LeakyReLU(0.1,inplace=True)
+         )
+
+    elif batchNorm==True and deform ==False:
         return nn.Sequential(
             nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=False),
             nn.BatchNorm2d(out_planes),
@@ -80,7 +95,7 @@ def save_grad(grads, name):
         grads[name] = grad
     return hook
 import torch
-from channelnorm_package.modules.channelnorm import ChannelNorm 
+from channelnorm_package.modules.channelnorm import ChannelNorm
 model = ChannelNorm().cuda()
 grads = {}
 a = 100*torch.autograd.Variable(torch.randn((1,3,5,5)).cuda(), requires_grad=True)

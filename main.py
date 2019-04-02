@@ -75,7 +75,7 @@ if __name__ == '__main__':
                                     parameter_defaults={'root': '../MPI-Sintel-complete/training/',
                                                         'replicates': 1})
 
-    tools.add_arguments_for_module(parser, datasets, argument_for_class='inference_dataset', default='MpiSintelClean',
+    tools.add_arguments_for_module(parser, datasets, argument_for_class='inference_dataset', default='MpiSintelFinal',
                                     skip_params=['is_cropped'],
                                     parameter_defaults={'root': '../MPI-Sintel-complete/training/',
                                                         'replicates': 1})
@@ -128,6 +128,7 @@ if __name__ == '__main__':
     # Dynamically load the dataset class with parameters passed in via "--argument_[param]=[value]" arguments
     with tools.TimerBlock("Initializing Datasets") as block:
         args.effective_batch_size = args.batch_size * args.number_gpus
+        args.effective_batch_size_val = args.batch_size * args.number_gpus
         args.effective_inference_batch_size = args.inference_batch_size * args.number_gpus
         args.effective_number_workers = args.number_workers * args.number_gpus
         gpuargs = {'num_workers': args.effective_number_workers,
@@ -142,14 +143,14 @@ if __name__ == '__main__':
             block.log('Training Input: {}'.format(' '.join([str([d for d in x.size()]) for x in train_dataset[0][0]])))
             block.log('Training Targets: {}'.format(' '.join([str([d for d in x.size()]) for x in train_dataset[0][1]])))
             train_loader = DataLoader(train_dataset, batch_size=args.effective_batch_size, shuffle=True, **gpuargs)
-        #print("validation dataset root",args.validation_dataset_root)
+
         if exists(args.validation_dataset_root):
             validation_dataset = args.validation_dataset_class(args, True, **tools.kwargs_from_args(args, 'validation_dataset'))
             block.log('Validation Dataset: {}'.format(args.validation_dataset))
             block.log('Validation Input: {}'.format(' '.join([str([d for d in x.size()]) for x in validation_dataset[0][0]])))
             block.log('Validation Targets: {}'.format(' '.join([str([d for d in x.size()]) for x in validation_dataset[0][1]])))
-            validation_loader = DataLoader(validation_dataset, batch_size=args.effective_batch_size, shuffle=False, **gpuargs)
-        print("inference dataset root",args.inference_dataset_root)
+            validation_loader = DataLoader(validation_dataset, batch_size=args.effective_batch_size_val, shuffle=False, **gpuargs)
+        #print("inference dataset root",args.inference_dataset_root)
         if exists(args.inference_dataset_root):
             inference_dataset = args.inference_dataset_class(args, False, **tools.kwargs_from_args(args, 'inference_dataset'))
             block.log('Inference Dataset: {}'.format(args.inference_dataset))
@@ -249,7 +250,9 @@ if __name__ == '__main__':
         if is_validate:
             model.eval()
             title = 'Validating Epoch {}'.format(epoch)
+            #print("validation_n_batches", args.validation_n_batches)
             args.validation_n_batches = np.inf if args.validation_n_batches < 0 else args.validation_n_batches
+            #print("validation_n_batches", args.validation_n_batches)
             progress = tqdm(tools.IteratorTimer(data_loader), ncols=100, total=np.minimum(len(data_loader), args.validation_n_batches), leave=True, position=offset, desc=title)
         else:
             model.train()
@@ -265,11 +268,15 @@ if __name__ == '__main__':
                 data, target = [d.cuda(async=True) for d in data], [t.cuda(async=True) for t in target]
 
             optimizer.zero_grad() if not is_validate else None
+            #print("this is data type",data[0].type())
+            #print("\n")
+            #print("this is target type",target[0].type())
+            #print("\n")
             losses = model(data[0], target[0])
-            losses = [torch.mean(loss_value) for loss_value in losses]
-            loss_val = losses[0] # Collect first loss for weight update
+            losses = [torch.mean(loss_value) for loss_value in losses] # taking mean of batches
+            loss_val = losses[0] # Collect first loss for weight update #take first loss, second is EPE
             total_loss += loss_val.data.cpu()
-            loss_values = [v.data.cpu() for v in losses]
+            loss_values = [v.data.cpu() for v in losses] #collect loss values
 
             # gather loss_labels, direct return leads to recursion limit error as it looks for variables to gather'
             loss_labels = list(model.module.loss.loss_labels)
@@ -303,16 +310,25 @@ if __name__ == '__main__':
                 loss_values.append(optimizer.param_groups[0]['lr'])
 
             loss_labels.append('load')
-            loss_values.append(progress.iterable.last_duration)
+            loss_values.append(progress.iterable.last_duration) #add load
 
+            #if is_validate:
+            #    print("this is EPE length", len(loss_values[:,1]))
             # Print out statistics
+            #if is_validate:
+            #    print(statistics)
             statistics.append(loss_values)
+            #if is_validate:
+            #    print(statistics)
             title = '{} Epoch {}'.format('Validating' if is_validate else 'Training', epoch)
 
             progress.set_description(title + ' ' + tools.format_dictionary_of_losses(loss_labels, statistics[-1]))
 
-            if ((((global_iteration + 1) % args.log_frequency) == 0 and not is_validate) or
-                (is_validate and batch_idx == args.validation_n_batches - 1)):
+            #if is_validate:
+            #    print(batch_idx)
+
+            if ((((global_iteration + 1) % args.log_frequency) == 0 and not is_validate) or is_validate and batch_idx == min(args.validation_n_batches, len(data_loader) - 1 )):
+            #if ((((global_iteration + 1) % args.log_frequency) == 0 and not is_validate) or (is_validate and batch_idx == args.validation_n_batches - 1)):
 
                 global_iteration = global_iteration if not is_validate else start_iteration
 
@@ -320,13 +336,15 @@ if __name__ == '__main__':
                 last_log_time = progress._time()
 
                 all_losses = np.array(statistics)
+                #if is_validate:
+                #    print(all_losses)
 
                 for i, key in enumerate(loss_labels):
                     logger.add_scalar('average batch ' + str(key), all_losses[:, i].mean() , global_iteration)
                     logger.add_histogram(str(key), all_losses[:, i], global_iteration)
 
             # Reset Summary
-            statistics = []
+                statistics = []
 
             if ( is_validate and ( batch_idx == args.validation_n_batches) ):
                 break
@@ -406,6 +424,10 @@ if __name__ == '__main__':
 
         if not args.skip_validation and ((epoch - 1) % args.validation_frequency) == 0:
             validation_loss, _ = train(args=args, epoch=epoch - 1, start_iteration=global_iteration, data_loader=validation_loader, model=model_and_loss, optimizer=optimizer, logger=validation_logger, is_validate=True, offset=offset)
+            #print("\n")
+            #print("This is validation loss", validation_loss)
+            #print("\n")
+            validation_logger.add_scalar('Validation Loss', validation_loss , global_iteration)
             offset += 1
 
             is_best = False
