@@ -34,9 +34,10 @@ class MpiSintel(data.Dataset):
         self.crop_size = args.crop_size
         self.render_size = args.inference_size
         self.replicates = replicates
-
         flow_root = join(root, 'flow')
         image_root = join(root, dstype)
+
+
 
         file_list = sorted(glob(join(flow_root, '*/*.flo')))
 
@@ -45,7 +46,6 @@ class MpiSintel(data.Dataset):
 
         for file in file_list:
             if 'test' in file:
-                # print file
                 continue
 
             fbase = file[len(flow_root)+1:]
@@ -54,7 +54,6 @@ class MpiSintel(data.Dataset):
 
             img1 = join(image_root, fprefix + "%04d"%(fnum+0) + '.png')
             img2 = join(image_root, fprefix + "%04d"%(fnum+1) + '.png')
-
             if not isfile(img1) or not isfile(img2) or not isfile(file):
                 continue
 
@@ -62,7 +61,6 @@ class MpiSintel(data.Dataset):
             self.flow_list += [file]
 
         self.size = len(self.image_list)
-
         self.frame_size = frame_utils.read_gen(self.image_list[0][0]).shape
 
         if (self.render_size[0] < 0) or (self.render_size[1] < 0) or (self.frame_size[0]%64) or (self.frame_size[1]%64):
@@ -121,7 +119,7 @@ class FlyingChairs(data.Dataset):
 
     images = sorted( glob( join(root, '*.ppm') ) )
 
-    self.flow_list = sorted( glob( join(root, '*.flo') ) )
+    self.flow_list = sorted( glob( join(root, '*/*.flo') ) )
 
     assert (len(images)//2 == len(self.flow_list))
 
@@ -355,7 +353,7 @@ class ImagesFromFolder(data.Dataset):
     else:
         cropper = StaticCenterCrop(image_size, self.render_size)
     images = list(map(cropper, images))
-    
+
     images = np.array(images).transpose(3,0,1,2)
     images = torch.from_numpy(images.astype(np.float32))
 

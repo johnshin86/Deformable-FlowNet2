@@ -2,7 +2,7 @@
 Portions of this code copyright 2017, Clement Pinard
 '''
 
-# freda (todo) : adversarial loss 
+# freda (todo) : adversarial loss
 
 import torch
 import torch.nn as nn
@@ -15,6 +15,18 @@ class L1(nn.Module):
     def __init__(self):
         super(L1, self).__init__()
     def forward(self, output, target):
+        #print("this is output type", output.type())
+        #print("\n")
+        #print("this is output0: ", output[0].size() )
+        #print("this is output1: ", output[1].size() )
+        #print("this is output2: ", output[2].size() )
+        #print("this is output3: ", output[3].size() )
+        #print("this is output4: ", output[4].size() )
+
+
+        #print("\n")
+        #print("this is right: \n", target.size() )
+        #print("\n")
         lossvalue = torch.abs(output - target).mean()
         return lossvalue
 
