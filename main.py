@@ -326,7 +326,7 @@ if __name__ == '__main__':
 
             #if is_validate:
             #    print(batch_idx)
-
+            # args.log_frequency == 1 by default
             if ((((global_iteration + 1) % args.log_frequency) == 0 and not is_validate) or is_validate and batch_idx == min(args.validation_n_batches, len(data_loader) - 1 )):
             #if ((((global_iteration + 1) % args.log_frequency) == 0 and not is_validate) or (is_validate and batch_idx == args.validation_n_batches - 1)):
 
@@ -424,10 +424,10 @@ if __name__ == '__main__':
 
         if not args.skip_validation and ((epoch - 1) % args.validation_frequency) == 0:
             validation_loss, _ = train(args=args, epoch=epoch - 1, start_iteration=global_iteration, data_loader=validation_loader, model=model_and_loss, optimizer=optimizer, logger=validation_logger, is_validate=True, offset=offset)
-            #print("\n")
-            #print("This is validation loss", validation_loss)
-            #print("\n")
-            validation_logger.add_scalar('Validation Loss', validation_loss , global_iteration)
+            print("\n")
+            print("This is validation loss", validation_loss)
+            print("\n")
+            validation_logger.add_scalar('Validation Loss', validation_loss , epoch)
             offset += 1
 
             is_best = False
@@ -449,6 +449,10 @@ if __name__ == '__main__':
             train_loss, iterations = train(args=args, epoch=epoch, start_iteration=global_iteration, data_loader=train_loader, model=model_and_loss, optimizer=optimizer, logger=train_logger, offset=offset)
             global_iteration += iterations
             offset += 1
+            print("\n")
+            print("This is training loss", train_loss)
+            print("\n")
+            training_logger.add_scalar('', train_loss, epoch)
 
             # save checkpoint after every validation_frequency number of epochs
             if ((epoch - 1) % args.validation_frequency) == 0:

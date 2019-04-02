@@ -6,21 +6,21 @@ import numpy as np
 from .deform_conv_v2 import DeformConv2d
 
 def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, deform=False):
-    if( batchNorm and deform) :
+    if (batchNorm==True and deform==True) :
         #print("here")
         return nn.Sequential(
              DeformConv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2,      bias=False, modulation=True),
              nn.BatchNorm2d(out_planes),
              nn.LeakyReLU(0.1,inplace=True)
          )
-    elif deform==True and batchNorm==False:
+    elif (deform==True and batchNorm==False):
         #print("here")
         return nn.Sequential(
              DeformConv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2,      bias=True, modulation=True),
              nn.LeakyReLU(0.1,inplace=True)
          )
 
-    elif batchNorm==True and deform ==False:
+    elif (batchNorm==True and deform ==False):
         return nn.Sequential(
             nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=False),
             nn.BatchNorm2d(out_planes),
