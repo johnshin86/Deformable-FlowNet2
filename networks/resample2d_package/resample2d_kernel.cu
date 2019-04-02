@@ -210,7 +210,6 @@ void resample2d_kernel_forward(
 //    AT_DISPATCH_FLOATING_TYPES(input1.type(), "resample_forward_kernel", ([&] {
 
         kernel_resample2d_update_output<float><<< (n + CUDA_NUM_THREADS - 1)/CUDA_NUM_THREADS, CUDA_NUM_THREADS, 0, at::cuda::getCurrentCUDAStream() >>>(
-//at::globalContext().getCurrentCUDAStream() >>>(
             n,
             input1.data<float>(),
             input1_size,
@@ -256,7 +255,6 @@ void resample2d_kernel_backward(
 //    AT_DISPATCH_FLOATING_TYPES(input1.type(), "resample_backward_input1", ([&] {
 
         kernel_resample2d_backward_input1<float><<< (n + CUDA_NUM_THREADS - 1)/CUDA_NUM_THREADS, CUDA_NUM_THREADS, 0, at::cuda::getCurrentCUDAStream() >>>(
-//at::globalContext().getCurrentCUDAStream() >>>(
             n, 
             input1.data<float>(), 
             input1_size,
@@ -284,7 +282,6 @@ void resample2d_kernel_backward(
 
 
         kernel_resample2d_backward_input2<float><<< (n + CUDA_NUM_THREADS - 1)/CUDA_NUM_THREADS, CUDA_NUM_THREADS, 0, at::cuda::getCurrentCUDAStream() >>>(
-//at::globalContext().getCurrentCUDAStream() >>>(
             n, 
             input1.data<float>(), 
             input1_size, 
