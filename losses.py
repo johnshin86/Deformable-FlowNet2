@@ -67,7 +67,7 @@ class MultiScale(nn.Module):
 
         self.startScale = startScale
         self.numScales = numScales
-        self.loss_weights = torch.FloatTensor([(l_weight / 2 ** scale) for scale in range(self.numScales)])
+        self.loss_weights = torch.cuda.FloatTensor([(l_weight / 2 ** scale) for scale in range(self.numScales)])
         self.args = args
         self.l_type = norm
         self.div_flow = 0.05

@@ -34,7 +34,7 @@ if __name__ == '__main__':
     parser.add_argument("--rgb_max", type=float, default = 255.)
 
     parser.add_argument('--number_workers', '-nw', '--num_workers', type=int, default=8)
-    parser.add_argument('--number_gpus', '-ng', type=int, default=-1, help='number of GPUs to use')
+    parser.add_argument('--number_gpus', '-ng', type=int, default=1, help='number of GPUs to use')
     parser.add_argument('--no_cuda', action='store_true')
 
     parser.add_argument('--seed', type=int, default=1)
@@ -56,6 +56,15 @@ if __name__ == '__main__':
 
     parser.add_argument('--skip_training', action='store_true')
     parser.add_argument('--skip_validation', action='store_true')
+
+    parser.add_argument('--dcn', action='store_true')
+    parser.add_argument('--modulation', action='store_true')
+    parser.add_argument('--dropout', type=float, default='0.0')
+    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--momentum', type=float, default=0.9)
+    parser.add_argument('--decay', type=float, default=0)
+    parser.add_argument('--nesterov', action='store_true')
+    parser.add_argument('--notes', type=str, default='')
 
     parser.add_argument('--fp16', action='store_true', help='Run model in pseudo-fp16 mode (fp16 storage fp32 math).')
     parser.add_argument('--fp16_scale', type=float, default=1024., help='Loss scaling, positive power of 2 values can improve fp16 convergence.')
@@ -182,6 +191,7 @@ if __name__ == '__main__':
 
         block.log('Effective Batch Size: {}'.format(args.effective_batch_size))
         block.log('Number of parameters: {}'.format(sum([p.data.nelement() if p.requires_grad else 0 for p in model_and_loss.parameters()])))
+        block.log('DCN = ' + 'True' if args.dcn else 'False')
 
         # assing to cuda or wrap with dataparallel, model and loss
         if args.cuda and (args.number_gpus > 0) and args.fp16:
@@ -225,8 +235,8 @@ if __name__ == '__main__':
         if not os.path.exists(args.save):
             os.makedirs(args.save)
 
-        train_logger = SummaryWriter(log_dir = os.path.join(args.save, 'train'), comment = 'training')
-        validation_logger = SummaryWriter(log_dir = os.path.join(args.save, 'validation'), comment = 'validation')
+        train_logger = SummaryWriter(log_dir = os.path.join(args.save, 'train' if not args.dcn else 'train-dcn'), comment = 'training')
+        validation_logger = SummaryWriter(log_dir = os.path.join(args.save, 'validation' if not args.dcn else 'validation-dcn'), comment = 'validation')
 
     # Dynamically load the optimizer with parameters passed in via "--optimizer_[param]=[value]" arguments
     with tools.TimerBlock("Initializing {} Optimizer".format(args.optimizer)) as block:
@@ -279,7 +289,7 @@ if __name__ == '__main__':
             loss_values = [v.data.cpu() for v in losses] #collect loss values
 
             # gather loss_labels, direct return leads to recursion limit error as it looks for variables to gather'
-            loss_labels = list(model.module.loss.loss_labels)
+            loss_labels = [y for x in model.module.loss.loss_labels for y in x] #list(model.module.loss.loss_labels)
 
             assert not np.isnan(total_loss.cpu())
 

@@ -285,15 +285,15 @@ class FlowNet2S(FlowNetS.FlowNetS):
         concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
         flow2 = self.predict_flow2(concat2)
 
-        #if self.training:
-        #    return flow2,flow3,flow4,flow5,flow6
-        #else:
-        #    return self.upsample1(flow2*self.div_flow)
-        return self.upsample1(flow2*self.div_flow)
+        if self.training:
+            return flow2,flow3,flow4,flow5,flow6
+        else:
+            return self.upsample1(flow2*self.div_flow)
+        #return self.upsample1(flow2*self.div_flow)
 
 class FlowNet2SD(FlowNetSD.FlowNetSD):
     def __init__(self, args, batchNorm=False, div_flow=20):
-        super(FlowNet1SD,self).__init__(args, batchNorm=batchNorm)
+        super(FlowNet2SD,self).__init__(args, batchNorm=batchNorm)
         self.rgb_max = args.rgb_max
         self.div_flow = div_flow
 

@@ -110,7 +110,7 @@ class MpiSintelFinal(MpiSintel):
         super(MpiSintelFinal, self).__init__(args, is_cropped = is_cropped, root = root, dstype = 'final', replicates = replicates)
 
 class FlyingChairs(data.Dataset):
-  def __init__(self, args, is_cropped, root = '/path/to/FlyingChairs_release/data', replicates = 1):
+  def __init__(self, args, is_cropped, root = '../FlyingChairs/data', replicates = 1):
     self.args = args
     self.is_cropped = is_cropped
     self.crop_size = args.crop_size
@@ -119,7 +119,7 @@ class FlyingChairs(data.Dataset):
 
     images = sorted( glob( join(root, '*.ppm') ) )
 
-    self.flow_list = sorted( glob( join(root, '*/*.flo') ) )
+    self.flow_list = sorted( glob( join(root, '*.flo') ) )
 
     assert (len(images)//2 == len(self.flow_list))
 
@@ -246,7 +246,7 @@ class FlyingThingsFinal(FlyingThings):
         super(FlyingThingsFinal, self).__init__(args, is_cropped = is_cropped, root = root, dstype = 'frames_finalpass', replicates = replicates)
 
 class ChairsSDHom(data.Dataset):
-  def __init__(self, args, is_cropped, root = '/path/to/chairssdhom/data', dstype = 'train', replicates = 1):
+  def __init__(self, args, is_cropped, root = '../chairssdhom/data', dstype = 'train', replicates = 1):
     self.args = args
     self.is_cropped = is_cropped
     self.crop_size = args.crop_size
