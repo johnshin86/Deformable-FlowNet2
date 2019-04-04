@@ -560,6 +560,8 @@ class DFlowNet2S(DFlowNetS.DFlowNetS):
 
         concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
         flow2 = self.predict_flow2(concat2)
-
-        return self.upsample1(flow2*self.div_flow)
+        if self.training and not self.args.blocktest:
+            return flow2,flow3,flow4,flow5,flow6
+        else:
+            return self.upsample1(flow2*self.div_flow)
 
