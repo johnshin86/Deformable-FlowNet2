@@ -216,6 +216,9 @@ if __name__ == '__main__':
             torch.manual_seed(args.seed)
 
         # Load weights if needed, otherwise randomly initialize
+        block.log("Resume: " + str(args.resume))
+        block.log("Is File: " + str(os.path.isfile(args.resume)))
+        
         if args.resume and os.path.isfile(args.resume):
             block.log("Loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
@@ -436,10 +439,10 @@ if __name__ == '__main__':
 
         if not args.skip_validation and ((epoch - 1) % args.validation_frequency) == 0:
             validation_loss, _ = train(args=args, epoch=epoch - 1, start_iteration=global_iteration, data_loader=validation_loader, model=model_and_loss, optimizer=optimizer, logger=validation_logger, is_validate=True, offset=offset)
-            print("\n")
-            print("This is validation loss", validation_loss)
-            print("\n")
-            validation_logger.add_scalar('Validation Loss by Epoch', validation_loss , epoch)
+            #print("\n")
+            #print("This is validation loss", validation_loss)
+            #print("\n")
+            validation_logger.add_scalar('Loss by Epoch', validation_loss , epoch)
             offset += 1
 
             is_best = False
@@ -452,7 +455,7 @@ if __name__ == '__main__':
                                       'epoch': epoch,
                                       'state_dict': model_and_loss.module.model.state_dict(),
                                       'best_EPE': best_err},
-                                      is_best, args.save, args.model)
+                                      is_best, args.save, args.model, tag='dcn' if args.dcn else '')
             checkpoint_progress.update(1)
             checkpoint_progress.close()
             offset += 1
@@ -461,10 +464,10 @@ if __name__ == '__main__':
             train_loss, iterations = train(args=args, epoch=epoch, start_iteration=global_iteration, data_loader=train_loader, model=model_and_loss, optimizer=optimizer, logger=train_logger, offset=offset)
             global_iteration += iterations
             offset += 1
-            print("\n")
-            print("This is training loss", train_loss)
-            print("\n")
-            train_logger.add_scalar('Training Loss by Epoch', train_loss, epoch)
+           # print("\n")
+           # print("This is training loss", train_loss)
+           # print("\n")
+            train_logger.add_scalar('Loss by Epoch', train_loss, epoch)
 
             # save checkpoint after every validation_frequency number of epochs
             if ((epoch - 1) % args.validation_frequency) == 0:
@@ -473,7 +476,7 @@ if __name__ == '__main__':
                                           'epoch': epoch,
                                           'state_dict': model_and_loss.module.model.state_dict(),
                                           'best_EPE': train_loss},
-                                          False, args.save, args.model, filename = 'train-checkpoint.pth.tar')
+                                          False, args.save, args.model, filename = 'train-checkpoint.pth.tar', tag='dcn' if args.dcn else '')
                 checkpoint_progress.update(1)
                 checkpoint_progress.close()
 

@@ -11,15 +11,16 @@ from .submodules import *
 'Parameter count , 39,175,298 '
 
 class FlowNetC(nn.Module):
-    def __init__(self,args, batchNorm=True, div_flow = 20):
+    def __init__(self,args, batchNorm=True, div_flow = 20, dcn=False):
         super(FlowNetC,self).__init__()
 
         self.batchNorm = batchNorm
         self.div_flow = div_flow
-
+        self.dcn = dcn
         self.conv1   = conv(self.batchNorm,   3,   64, kernel_size=7, stride=2)
         self.conv2   = conv(self.batchNorm,  64,  128, kernel_size=5, stride=2)
         self.conv3   = conv(self.batchNorm, 128,  256, kernel_size=5, stride=2)
+        self.conv3_0 = conv(self.batchNorm, 256,  256, kernel_size=3, stride=1, dcn=dcn)
         self.conv_redir  = conv(self.batchNorm, 256,   32, kernel_size=1, stride=1)
 
         if args.fp16:
@@ -75,15 +76,20 @@ class FlowNetC(nn.Module):
         out_conv1a = self.conv1(x1)
         out_conv2a = self.conv2(out_conv1a)
         out_conv3a = self.conv3(out_conv2a)
+        if dcn: out_conv3aa= self.conv3_0(out_conv3a)
 
         # FlownetC bottom input stream
         out_conv1b = self.conv1(x2)
-
         out_conv2b = self.conv2(out_conv1b)
         out_conv3b = self.conv3(out_conv2b)
+        if dcn: out_conv3bb= self.conv3_0(out_conv3b)
 
         # Merge streams
-        out_corr = self.corr(out_conv3a, out_conv3b) # False
+        if dcn:
+            out_corr = self.corr(out_conv3aa, out_conv3bb) # False
+        else:
+            out_corr = self.corr(out_conv3a, out_conv3b)
+
         out_corr = self.corr_activation(out_corr)
 
         # Redirect top input stream and concatenate

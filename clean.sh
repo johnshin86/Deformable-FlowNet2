@@ -1,4 +1,4 @@
 rm ./work/train/*
-rm ./work/validate/*
+rm ./work/validation/*
 rm ./work/train-dcn/*
-rm ./work/validate-dcn/*
+rm ./work/validation-dcn/*

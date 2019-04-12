@@ -135,10 +135,10 @@ def update_hyperparameter_schedule(args, epoch, global_iteration, optimizer):
                 param_group['lr'] /= float(args.schedule_lr_fraction)
                 param_group['lr'] = float(np.maximum(param_group['lr'], 0.000001))
 
-def save_checkpoint(state, is_best, path, prefix, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, is_best, path, prefix, filename='checkpoint.pth.tar', tag=''):
     prefix_save = os.path.join(path, prefix)
     name = prefix_save + '_' + filename
     torch.save(state, name)
     if is_best:
-        shutil.copyfile(name, prefix_save + '_model_best.pth.tar')
+        shutil.copyfile(name, prefix_save + '_' + tag +'_model_best.pth.tar')
 

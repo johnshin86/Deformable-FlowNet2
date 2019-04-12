@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.nn import init
+from torch.nn import init, Dropout2d
 
 import math
 import numpy as np
@@ -9,7 +9,7 @@ from .submodules import *
 'Parameter count = 45,371,666'
 
 class FlowNetSD(nn.Module):
-    def __init__(self, args, batchNorm=True):
+    def __init__(self, args, batchNorm=True, dcn=False, modulation=False):
         super(FlowNetSD,self).__init__()
 
         self.batchNorm = batchNorm
@@ -20,28 +20,28 @@ class FlowNetSD(nn.Module):
         self.conv2_1 = conv(self.batchNorm,  128,  128)
         self.conv3   = conv(self.batchNorm, 128,  256, stride=2)
         self.conv3_1 = conv(self.batchNorm, 256,  256)
-        self.conv4   = conv(self.batchNorm, 256,  512, stride=2)
-        self.conv4_1 = conv(self.batchNorm, 512,  512)
-        self.conv5   = conv(self.batchNorm, 512,  512, stride=2)
-        self.conv5_1 = conv(self.batchNorm, 512,  512)
-        self.conv6   = conv(self.batchNorm, 512, 1024, stride=2)
-        self.conv6_1 = conv(self.batchNorm,1024, 1024)
+        self.conv4   = conv(self.batchNorm, 256,  512, stride=2)#, dcn=dcn)
+        self.conv4_1 = conv(self.batchNorm, 512,  512)#, dcn=dcn)
+        self.conv5   = conv(self.batchNorm, 512,  512, stride=2)#, dcn=dcn)
+        self.conv5_1 = conv(self.batchNorm, 512,  512)#, dcn=dcn)
+        self.conv6   = conv(self.batchNorm, 512, 1024, stride=2)#, dcn=dcn)
+        self.conv6_1 = conv(self.batchNorm,1024, 1024)#, dcn=dcn)
 
         self.deconv5 = deconv(1024,512)
         self.deconv4 = deconv(1026,256)
         self.deconv3 = deconv(770,128)
         self.deconv2 = deconv(386,64)
 
-        self.inter_conv5 = i_conv(self.batchNorm,  1026,   512)
-        self.inter_conv4 = i_conv(self.batchNorm,  770,   256)
-        self.inter_conv3 = i_conv(self.batchNorm,  386,   128)
-        self.inter_conv2 = i_conv(self.batchNorm,  194,   64)
+        self.inter_conv5 = i_conv(self.batchNorm,  1026,   512)#, dcn=dcn)
+        self.inter_conv4 = i_conv(self.batchNorm,  770,   256)#, dcn=dcn)
+        self.inter_conv3 = i_conv(self.batchNorm,  386,   128)#, dcn=dcn)
+        self.inter_conv2 = i_conv(self.batchNorm,  194,   64)#, dcn=dcn)
 
-        self.predict_flow6 = predict_flow(1024)
-        self.predict_flow5 = predict_flow(512)
-        self.predict_flow4 = predict_flow(256)
-        self.predict_flow3 = predict_flow(128)
-        self.predict_flow2 = predict_flow(64)
+        self.predict_flow6 = predict_flow(1024)#, dcn=dcn)
+        self.predict_flow5 = predict_flow(512)#, dcn=dcn)
+        self.predict_flow4 = predict_flow(256)#, dcn=dcn)
+        self.predict_flow3 = predict_flow(128)#, dcn=dcn)
+        self.predict_flow2 = predict_flow(64, dcn=dcn)
 
         self.upsampled_flow6_to_5 = nn.ConvTranspose2d(2, 2, 4, 2, 1)
         self.upsampled_flow5_to_4 = nn.ConvTranspose2d(2, 2, 4, 2, 1)

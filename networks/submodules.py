@@ -1,52 +1,68 @@
-# freda (todo) :
+# freda (todo) : 
 
 import torch.nn as nn
 import torch
 import numpy as np
-from .deform_conv_v2 import DeformConv2d
+#from .DCNv2 import DeformConv2d 
+from dcn_v2 import dcn_v2_conv, DCNv2, DCN
+from dcn_v2 import dcn_v2_pooling, DCNv2Pooling, DCNPooling
 
-def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, deform=False):
-    if (batchNorm==True and deform==True) :
-        #print("here")
-        return nn.Sequential(
-             DeformConv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2,      bias=False, modulation=True),
-             nn.BatchNorm2d(out_planes),
-             nn.LeakyReLU(0.1,inplace=True)
-         )
-    elif (deform==True and batchNorm==False):
-        #print("here")
-        return nn.Sequential(
-             DeformConv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2,      bias=True, modulation=True),
-             nn.LeakyReLU(0.1,inplace=True)
-         )
-
-    elif (batchNorm==True and deform ==False):
-        return nn.Sequential(
-            nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=False),
-            nn.BatchNorm2d(out_planes),
-            nn.LeakyReLU(0.1,inplace=True)
-        )
-    else:
-        return nn.Sequential(
-            nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=True),
-            nn.LeakyReLU(0.1,inplace=True)
-        )
-
-def i_conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, bias = True):
+def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, dcn=False, modulation=False):
     if batchNorm:
-        return nn.Sequential(
-            nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=bias),
-            nn.BatchNorm2d(out_planes),
-        )
+        if dcn:
+            return nn.Sequential(
+                DCN(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2),
+                nn.BatchNorm2d(out_planes),
+                nn.LeakyReLU(0.1,inplace=True)
+            )
+        else:
+            return nn.Sequential(
+                nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=False),
+                nn.BatchNorm2d(out_planes),
+                nn.LeakyReLU(0.1,inplace=True)
+            )
     else:
-        return nn.Sequential(
-            nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=bias),
-        )
+        if dcn:
+            return nn.Sequential(
+                DCN(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2),
+                nn.LeakyReLU(0.1,inplace=True)
+            )
+        else:
+            return nn.Sequential(
+                nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=True),
+                nn.LeakyReLU(0.1,inplace=True)
+            )
 
-def predict_flow(in_planes):
-    return nn.Conv2d(in_planes,2,kernel_size=3,stride=1,padding=1,bias=True)
+def i_conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, bias = True, dcn=False, modulation=False):
+    if batchNorm:
+        if dcn:
+            return nn.Sequential(
+                DCN(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2),
+                nn.BatchNorm2d(out_planes),
+            )
+        else:
+            return nn.Sequential(
+                nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=bias),
+                nn.BatchNorm2d(out_planes),
+            )
 
-def deconv(in_planes, out_planes):
+    else:
+        if dcn:
+            return nn.Sequential(
+                DCN(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2),
+            )
+        else:
+            return nn.Sequential(
+                nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=bias),
+            )
+
+def predict_flow(in_planes, dcn=False, modulation=False):
+    if dcn:
+        return DCN(in_planes,2,kernel_size=3,stride=1,padding=1)
+    else:
+        return nn.Conv2d(in_planes,2,kernel_size=3,stride=1,padding=1,bias=True)
+
+def deconv(in_planes, out_planes, dcn=False):
     return nn.Sequential(
         nn.ConvTranspose2d(in_planes, out_planes, kernel_size=4, stride=2, padding=1, bias=True),
         nn.LeakyReLU(0.1,inplace=True)
@@ -95,7 +111,7 @@ def save_grad(grads, name):
         grads[name] = grad
     return hook
 import torch
-from channelnorm_package.modules.channelnorm import ChannelNorm
+from channelnorm_package.modules.channelnorm import ChannelNorm 
 model = ChannelNorm().cuda()
 grads = {}
 a = 100*torch.autograd.Variable(torch.randn((1,3,5,5)).cuda(), requires_grad=True)

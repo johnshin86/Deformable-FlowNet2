@@ -9,7 +9,7 @@ from .submodules import *
 'Parameter count = 581,226'
 
 class FlowNetFusion(nn.Module):
-    def __init__(self,args, batchNorm=True):
+    def __init__(self,args, batchNorm=True, dcn=False):
         super(FlowNetFusion,self).__init__()
 
         self.batchNorm = batchNorm
@@ -27,7 +27,7 @@ class FlowNetFusion(nn.Module):
 
         self.predict_flow2 = predict_flow(128)
         self.predict_flow1 = predict_flow(32)
-        self.predict_flow0 = predict_flow(16)
+        self.predict_flow0 = predict_flow(16, dcn=dcn)
 
         self.upsampled_flow2_to_1 = nn.ConvTranspose2d(2, 2, 4, 2, 1)
         self.upsampled_flow1_to_0 = nn.ConvTranspose2d(2, 2, 4, 2, 1)
