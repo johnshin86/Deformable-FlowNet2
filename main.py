@@ -239,8 +239,8 @@ if __name__ == '__main__':
         if not os.path.exists(args.save):
             os.makedirs(args.save)
 
-        train_logger = SummaryWriter(log_dir = os.path.join(args.save, 'train' if not args.dcn else 'train-dcn'), comment = 'training')
-        validation_logger = SummaryWriter(log_dir = os.path.join(args.save, 'validation' if not args.dcn else 'validation-dcn'), comment = 'validation')
+        train_logger = SummaryWriter(log_dir = os.path.join(args.save, 'train'+str(args.model) if not args.dcn else 'train'+str(args.model)+'dcn'), comment = 'training')
+        validation_logger = SummaryWriter(log_dir = os.path.join(args.save, 'validation'+str(args.model) if not args.dcn else 'validation'+str(args.model)+'dcn'), comment = 'validation')
 
     # Dynamically load the optimizer with parameters passed in via "--optimizer_[param]=[value]" arguments
     with tools.TimerBlock("Initializing {} Optimizer".format(args.optimizer)) as block:
