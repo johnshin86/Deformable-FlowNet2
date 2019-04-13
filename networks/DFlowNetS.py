@@ -14,13 +14,13 @@ from .submodules import *
 'Parameter count : 38,676,504 '
 
 class DFlowNetS(nn.Module):
-    def __init__(self, args, input_channels = 12, batchNorm=True):
+    def __init__(self, args, input_channels = 12, batchNorm=True, dcn=False):
         super(DFlowNetS,self).__init__()
 
         self.batchNorm = batchNorm
         self.conv1   = conv(self.batchNorm,  input_channels,   64, kernel_size=7, stride=2)
         self.conv2   = conv(self.batchNorm, 64,  128, kernel_size=3, stride=2)
-        self.conv3   = conv(self.batchNorm, 128,  256, kernel_size=5, stride=2, deform=True)
+        self.conv3   = conv(self.batchNorm, 128,  256, kernel_size=5, stride=2)
         self.conv3_1 = conv(self.batchNorm, 256,  256)
         self.conv4   = conv(self.batchNorm, 256,  512, stride=2)
         self.conv4_1 = conv(self.batchNorm, 512,  512)
@@ -38,7 +38,7 @@ class DFlowNetS(nn.Module):
         self.predict_flow5 = predict_flow(1026)
         self.predict_flow4 = predict_flow(770)
         self.predict_flow3 = predict_flow(386)
-        self.predict_flow2 = predict_flow(194)
+        self.predict_flow2 = predict_flow(194, dcn=dcn)
 
         self.upsampled_flow6_to_5 = nn.ConvTranspose2d(2, 2, 4, 2, 1, bias=False)
         self.upsampled_flow5_to_4 = nn.ConvTranspose2d(2, 2, 4, 2, 1, bias=False)
@@ -46,11 +46,7 @@ class DFlowNetS(nn.Module):
         self.upsampled_flow3_to_2 = nn.ConvTranspose2d(2, 2, 4, 2, 1, bias=False)
 
         for m in self.modules():
-            if isinstance(m, DeformConv2d):
-                pass
-                #if m.bias is not None:
-                #    init.uniform_(m.bias)
-                #init.xavier_uniform_(m.weight)
+
             if isinstance(m, nn.Conv2d):
                 if m.bias is not None:
                     init.uniform_(m.bias)

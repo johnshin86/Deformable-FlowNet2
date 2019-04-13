@@ -1,0 +1,1 @@
+python3 main.py --total_epochs 1 --validation_frequency 3 --model FlowNet2S --loss=L2Loss --optimizer=Adam --optimizer_lr=1e-4 --resume work/FlowNet2S_checkpoint.pth.tar --training_dataset MpiSintelFinal --training_dataset_root ../MPI-Sintel-complete/training/ --validation_dataset MpiSintelClean --validation_dataset_root ../MPI-Sintel-complete/training/ --blocktest
