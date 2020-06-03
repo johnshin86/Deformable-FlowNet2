@@ -1,3 +1,5 @@
-# flownet2-pytorch 
+# Deformable-FlowNet2 
 
-Adapting the flownet2 code by NVIDIA, we added deformable convolutions to improve optical flow prediction.
+This is an adaption of the FlowNet2 code by NVIDIA. We adapted the FlowNet2 code to incorporate Deformable Convolutions, and conducted ablation studies.
+
+This project was for the Deep Learning course at Columbia, Spring 2019. My partners were Nicholas Sparks and Jacob Portes.
