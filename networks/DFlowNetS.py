@@ -10,7 +10,7 @@ import math
 import numpy as np
 
 #from .deform_conv_v2 import *
-from .submodules_2 import *
+from .submodules import *
 'Parameter count : 38,676,504 '
 
 class DFlowNetS(nn.Module):
@@ -21,7 +21,7 @@ class DFlowNetS(nn.Module):
         self.conv1   = conv(self.batchNorm,  input_channels,   64, kernel_size=7, stride=2)
         self.conv2   = conv(self.batchNorm, 64,  128, kernel_size=3, stride=2)
         self.conv3   = conv(self.batchNorm, 128,  256, kernel_size=5, stride=2)
-        self.conv3_1 = conv(self.batchNorm, 256,  256)
+        self.conv3_1 = conv(self.batchNorm, 256,  256, deform=True)
         self.conv4   = conv(self.batchNorm, 256,  512, stride=2)
         self.conv4_1 = conv(self.batchNorm, 512,  512)
         self.conv5   = conv(self.batchNorm, 512,  512, stride=2)
@@ -38,7 +38,7 @@ class DFlowNetS(nn.Module):
         self.predict_flow5 = predict_flow(1026)
         self.predict_flow4 = predict_flow(770)
         self.predict_flow3 = predict_flow(386)
-        self.predict_flow2 = predict_flow(194, deform=True)
+        self.predict_flow2 = predict_flow(194)
 
         self.upsampled_flow6_to_5 = nn.ConvTranspose2d(2, 2, 4, 2, 1, bias=False)
         self.upsampled_flow5_to_4 = nn.ConvTranspose2d(2, 2, 4, 2, 1, bias=False)
